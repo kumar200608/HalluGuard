@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "HalluGuard",
+  "name_for_model": "halluguard",
+  "description_for_human": "Hallucination prevention plugin. Verifies every factual claim in an AI answer against real evidence before returning it to the user. Blocks fabricated facts, fake citations, wrong calculations, outdated info, and unsupported claims.",
+  "description_for_model": "Use HalluGuard to verify any answer you are about to give. Submit your draft answer and the user's query to POST /v1/verify. The plugin extracts every factual claim, retrieves evidence, checks entailment, detects contradictions, validates calculations deterministically, checks temporal freshness, and returns a gate decision (ALLOW / REWRITE / BLOCK_AND_REGENERATE). Always use the returned 'answer' field — never the original draft — as your final response. If 'allowed' is false, the answer has been repaired or blocked. Include any 'warnings' in your response. Never present an UNSUPPORTED claim as fact. Never invent citations — only use 'citations' returned by this plugin.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://your-deployment-url.com/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://your-deployment-url.com/static/logo.png",
+  "contact_email": "support@your-domain.com",
+  "legal_info_url": "https://your-deployment-url.com/legal"
+}

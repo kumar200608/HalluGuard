@@ -1,0 +1,22 @@
+{
+  "name": "halluguard-mcp",
+  "version": "1.0.0",
+  "description": "HalluGuard MCP server — exposes hallucination verification tools to any MCP-compatible agent (Claude Desktop, Cursor, GitHub Copilot, Continue, Cline, Roo)",
+  "type": "module",
+  "main": "server.js",
+  "bin": {
+    "halluguard-mcp": "./server.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "HALLUGUARD_API_URL=http://localhost:8000 node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["mcp", "hallucination", "verification", "ai-safety", "claude", "chatgpt", "gemini"],
+  "license": "MIT"
+}

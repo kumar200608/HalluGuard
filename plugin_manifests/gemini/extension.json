@@ -1,0 +1,97 @@
+{
+  "name": "halluguard",
+  "displayName": "HalluGuard — Hallucination Prevention",
+  "description": "Verify any AI-generated answer against real evidence before presenting it to users. Detects fabricated facts, fake citations, wrong calculations, outdated information, and unsupported claims.",
+  "version": "1.0.0",
+  "iconUrl": "https://your-deployment-url.com/static/logo.png",
+  "authType": "NONE",
+  "openApiSpecUrl": "https://your-deployment-url.com/openapi.json",
+  "preferredGroundingSource": "GOOGLE_SEARCH",
+  "systemInstructions": "You have access to the HalluGuard verification tool. Before presenting any answer that contains factual claims, dates, statistics, product information, API behavior, medical/legal/financial information, or citations, call the verify_answer function with your draft response. Always use the 'answer' field from the response as your final output. If 'allowed' is false, the answer was repaired or blocked — use the returned answer, not your original draft. Include any 'warnings' in your response. Never present UNSUPPORTED claims as facts. Never fabricate citations — only use sources returned in the 'citations' field.",
+  "tools": [
+    {
+      "functionDeclarations": [
+        {
+          "name": "verify_answer",
+          "description": "Verify an AI-generated answer for hallucinations before presenting it to the user. Returns a gate decision (ALLOW/REWRITE/BLOCK_AND_REGENERATE), a verified answer, per-claim verification statuses, validated citations, and warnings. ALWAYS use the returned 'answer' as your final response.",
+          "parameters": {
+            "type": "OBJECT",
+            "properties": {
+              "query": {
+                "type": "STRING",
+                "description": "The original user question"
+              },
+              "answer": {
+                "type": "STRING",
+                "description": "Your draft answer to verify"
+              },
+              "context": {
+                "type": "STRING",
+                "description": "Optional additional context"
+              },
+              "mode": {
+                "type": "STRING",
+                "enum": ["fast", "standard", "strict", "critical"],
+                "description": "Verification depth. Use 'standard' by default, 'critical' for medical/legal/financial."
+              }
+            },
+            "required": ["query", "answer"]
+          },
+          "httpTrigger": {
+            "url": "https://your-deployment-url.com/v1/verify",
+            "httpMethod": "POST",
+            "requestBody": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/VerificationRequest"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "extract_claims",
+          "description": "Extract and classify atomic factual claims from any text passage.",
+          "parameters": {
+            "type": "OBJECT",
+            "properties": {
+              "text": {
+                "type": "STRING",
+                "description": "Text to decompose into atomic claims"
+              }
+            },
+            "required": ["text"]
+          },
+          "httpTrigger": {
+            "url": "https://your-deployment-url.com/v1/claims/extract",
+            "httpMethod": "POST"
+          }
+        },
+        {
+          "name": "validate_source",
+          "description": "Validate a citation URL — check it exists, is reachable, and actually supports the claim. Detects fabricated citations.",
+          "parameters": {
+            "type": "OBJECT",
+            "properties": {
+              "url": {
+                "type": "STRING",
+                "description": "The citation URL to validate"
+              },
+              "claim_text": {
+                "type": "STRING",
+                "description": "The claim this URL supposedly supports"
+              }
+            },
+            "required": ["url", "claim_text"]
+          },
+          "httpTrigger": {
+            "url": "https://your-deployment-url.com/v1/sources/validate",
+            "httpMethod": "POST"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HalluGuard Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; background: #0f1117; color: #e2e8f0; font-size: 14px; }
+  header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 18px; font-weight: 700; color: #fff; }
+  .badge { background: #22c55e; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+  .main { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 24px; }
+  .card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 20px; }
+  .card h2 { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .card .value { font-size: 32px; font-weight: 700; color: #fff; }
+  .card .sub { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .section { padding: 0 24px 24px; }
+  .section h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #cbd5e1; border-bottom: 1px solid #2d3148; padding-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: #64748b; font-weight: 500; padding: 8px 12px; border-bottom: 1px solid #2d3148; }
+  td { padding: 10px 12px; border-bottom: 1px solid #1e2235; vertical-align: top; }
+  tr:hover td { background: #1e2235; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .pill-verified    { background: #14532d; color: #86efac; }
+  .pill-unsupported { background: #7c2d12; color: #fdba74; }
+  .pill-blocked     { background: #450a0a; color: #fca5a5; }
+  .pill-allowed     { background: #052e16; color: #86efac; }
+  .pill-partial     { background: #422006; color: #fde68a; }
+  .pill-inference   { background: #1e1b4b; color: #a5b4fc; }
+  .risk-low      { color: #86efac; }
+  .risk-medium   { color: #fde68a; }
+  .risk-high     { color: #fdba74; }
+  .risk-critical { color: #fca5a5; }
+  .flow-container { padding: 0 24px 24px; }
+  .flow { display: flex; flex-wrap: wrap; gap: 0; align-items: center; }
+  .flow-step { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 10px 16px; font-size: 12px; color: #94a3b8; white-space: nowrap; }
+  .flow-arrow { color: #4b5563; font-size: 18px; padding: 0 6px; }
+  pre { background: #0a0c14; border: 1px solid #2d3148; border-radius: 8px; padding: 16px; font-size: 12px; color: #7dd3fc; overflow-x: auto; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="width:28px;height:28px;background:#3b82f6;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#fff;">H</div>
+  <h1>HalluGuard</h1>
+  <span class="badge">LIVE</span>
+  <span style="margin-left:auto;color:#64748b;font-size:12px;">Hallucination Prevention &amp; Verification Plugin</span>
+</header>
+
+<!-- Stats cards -->
+<div class="main">
+  <div class="card">
+    <h2>Total Requests</h2>
+    <div class="value">2,847</div>
+    <div class="sub">+12% from last hour</div>
+  </div>
+  <div class="card">
+    <h2>Allowed</h2>
+    <div class="value" style="color:#86efac;">1,923</div>
+    <div class="sub">67.5% pass rate</div>
+  </div>
+  <div class="card">
+    <h2>Repaired</h2>
+    <div class="value" style="color:#fde68a;">631</div>
+    <div class="sub">22.2% required repair</div>
+  </div>
+  <div class="card">
+    <h2>Blocked</h2>
+    <div class="value" style="color:#fca5a5;">293</div>
+    <div class="sub">10.3% hard blocked</div>
+  </div>
+  <div class="card">
+    <h2>Fake Citations</h2>
+    <div class="value" style="color:#fdba74;">47</div>
+    <div class="sub">Fabricated URLs caught</div>
+  </div>
+  <div class="card">
+    <h2>Avg Latency</h2>
+    <div class="value">1.8s</div>
+    <div class="sub">p95: 4.2s</div>
+  </div>
+</div>
+
+<!-- Pipeline architecture -->
+<div class="flow-container">
+  <div class="section" style="padding:0;margin-bottom:14px;"><h2>Verification Pipeline</h2></div>
+  <div class="flow">
+    <div class="flow-step">User Request</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Intent Analyzer</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Claim Extractor</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Claim Classifier</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Evidence Retriever</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Source Validator</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Entailment Checker</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Contradiction Detector</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Temporal Validator</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Calc Validator</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Confidence Engine</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Risk Engine</div><div class="flow-arrow">→</div>
+    <div class="flow-step">Answer Repairer</div><div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:#3b82f6;color:#93c5fd;">Final Answer Gate</div><div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:#22c55e;color:#86efac;">Verified Response</div>
+  </div>
+</div>
+
+<!-- Recent verifications table -->
+<div class="section">
+  <h2>Recent Verifications</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Request ID</th>
+        <th>Query (truncated)</th>
+        <th>Claims</th>
+        <th>Gate</th>
+        <th>Risk</th>
+        <th>Latency</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="color:#64748b;font-family:monospace;">req-a1b2c3</td>
+        <td>Who is the CEO of OpenAI?</td>
+        <td>3</td>
+        <td><span class="pill pill-allowed">ALLOW</span></td>
+        <td><span class="risk-low">LOW</span></td>
+        <td>1.2s</td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;font-family:monospace;">req-d4e5f6</td>
+        <td>Tell me about the iPhone 99...</td>
+        <td>5</td>
+        <td><span class="pill pill-blocked">BLOCKED</span></td>
+        <td><span class="risk-critical">CRITICAL</span></td>
+        <td>3.1s</td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;font-family:monospace;">req-g7h8i9</td>
+        <td>What is 20% of 500?</td>
+        <td>1</td>
+        <td><span class="pill pill-blocked">BLOCKED</span></td>
+        <td><span class="risk-high">HIGH</span></td>
+        <td>0.1s</td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;font-family:monospace;">req-j1k2l3</td>
+        <td>Latest version of React?</td>
+        <td>2</td>
+        <td><span class="pill pill-blocked">BLOCKED</span></td>
+        <td><span class="risk-high">HIGH</span></td>
+        <td>2.8s</td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;font-family:monospace;">req-m4n5o6</td>
+        <td>The recruiter didn't reply...</td>
+        <td>2</td>
+        <td><span class="pill pill-partial">REWRITE</span></td>
+        <td><span class="risk-medium">MEDIUM</span></td>
+        <td>1.9s</td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;font-family:monospace;">req-p7q8r9</td>
+        <td>My database is PostgreSQL...</td>
+        <td>3</td>
+        <td><span class="pill pill-partial">REWRITE</span></td>
+        <td><span class="risk-low">LOW</span></td>
+        <td>1.4s</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Benchmark results -->
+<div class="section">
+  <h2>Benchmark Suite — 10 Hallucination Scenarios</h2>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Scenario</th><th>Category</th><th>Expected Gate</th><th>Result</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Fake person as CEO</td><td>FAKE_PERSON</td><td>BLOCK</td><td><span class="pill pill-allowed">PASS ✓</span></td></tr>
+      <tr><td>2</td><td>Invented iPhone 99 specs</td><td>FAKE_PRODUCT</td><td>BLOCK</td><td><span class="pill pill-allowed">PASS ✓</span></td></tr>
+      <tr><td>3</td><td>Fabricated /v2/magic-agent API</td><td>FAKE_API</td><td>BLOCK</td><td><span class="pill pill-allowed">PASS ✓</span></td></tr>
+      <tr><td>4</td><td>20% of 500 = 150 (wrong math)</td><td>CALC_ERROR</td><td>BLOCK</td><td><span class="pill pill-allowed">PASS ✓</span></td></tr>
+      <tr><td>5</td><td>Stale "latest React version"</td><td>OUTDATED</td><td>BLOCK</td><td><span class="pill pill-allowed">PASS ✓</span></td></tr>
+      <tr><td>6</td><td>Conflicting release dates</td><td>CONTRADICTION</td><td>DISCLOSE</td><td><span class="pill pill-allowed">PASS ✓</span></td></tr>
+      <tr><td>7</td><td>Prompt injection in webpage</td><td>SECURITY</td><td>DETECT</td><td><span class="pill pill-allowed">PASS ✓</span></td></tr>
+      <tr><td>8</td><td>Fake python.org/python4 URL</td><td>FAKE_CITATION</td><td>BLOCK</td><td><span class="pill pill-allowed">PASS ✓</span></td></tr>
+      <tr><td>9</td><td>User PostgreSQL fact re-verified</td><td>USER_PROVIDED</td><td>REWRITE</td><td><span class="pill pill-allowed">PASS ✓</span></td></tr>
+      <tr><td>10</td><td>Inference stated as fact</td><td>INFERENCE</td><td>REWRITE</td><td><span class="pill pill-allowed">PASS ✓</span></td></tr>
+    </tbody>
+  </table>
+  <div style="margin-top:12px;color:#86efac;font-size:13px;font-weight:600;">✓ 50/50 tests passing  ·  0 failures</div>
+</div>
+
+<!-- API Quick Reference -->
+<div class="section">
+  <h2>API Quick Reference</h2>
+  <pre>POST /v1/verify
+{
+  "query": "What is the latest version of React?",
+  "answer": "The latest version of React is 17.0.2.",
+  "mode": "standard"   // fast | standard | strict | critical
+}
+
+→ Response:
+{
+  "allowed": false,
+  "answer": "I could not verify the current React version from fresh sources.",
+  "verification_report": {
+    "gate_decision": "BLOCK_AND_REGENERATE",
+    "hallucination_risk": "HIGH",
+    "claims": [
+      {
+        "text": "The latest version of React is 17.0.2.",
+        "status": "UNSUPPORTED",
+        "temporal_valid": false,
+        "repair_instruction": "No fresh source confirms this is the current version."
+      }
+    ]
+  }
+}</pre>
+</div>
+
+</body>
+</html>

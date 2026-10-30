@@ -1,0 +1,107 @@
+{
+  "schema_version": "v1",
+  "name": "halluguard",
+  "version": "1.0.0",
+  "author": {
+    "name": "HalluGuard",
+    "email": "support@halluguard.ai",
+    "url": "https://your-deployment-url.com"
+  },
+  "interface": {
+    "displayName": "HalluGuard",
+    "shortDescription": "Hallucination prevention — verifies every factual claim before it reaches the user.",
+    "longDescription": "HalluGuard is a production-grade verification layer that sits between an AI agent and its final answer. It extracts every factual claim from a draft response, retrieves real evidence, checks entailment, detects contradictions and fake citations, validates calculations deterministically, checks temporal freshness, and applies a final gate decision (ALLOW / REWRITE / BLOCK). No unsupported claim ever reaches the user as a stated fact.",
+    "developerName": "HalluGuard",
+    "author": {
+      "name": "HalluGuard",
+      "email": "support@halluguard.ai",
+      "url": "https://your-deployment-url.com"
+    },
+    "category": "productivity",
+    "capabilities": ["verify_answer", "extract_claims", "validate_source"]
+  },
+  "description": "Hallucination prevention and evidence verification plugin. Verifies every factual claim in a response against real-world evidence before it reaches the user.",
+  "tools": [
+    {
+      "name": "verify_answer",
+      "description": "Verify an AI-generated answer for hallucinations before presenting it to the user. Submit the user's original query and your draft answer. Returns a gate decision (ALLOW/REWRITE/BLOCK_AND_REGENERATE), a verified answer, per-claim verification statuses, validated citations, and warnings. ALWAYS use the returned 'answer' field as your final response. NEVER present UNSUPPORTED claims as facts. NEVER use citations not returned by this tool.",
+      "input_schema": {
+        "type": "object",
+        "required": ["query", "answer"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The original user question"
+          },
+          "answer": {
+            "type": "string",
+            "description": "Your draft answer to verify before sending to the user"
+          },
+          "context": {
+            "type": "string",
+            "description": "Optional additional context"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["fast", "standard", "strict", "critical"],
+            "default": "standard",
+            "description": "Verification depth: fast=high-risk claims only, standard=all verifiable claims, strict=every claim, critical=multiple authoritative sources required"
+          }
+        }
+      },
+      "http": {
+        "method": "POST",
+        "url": "https://your-deployment-url.com/v1/verify"
+      }
+    },
+    {
+      "name": "extract_claims",
+      "description": "Decompose any text into atomic, independently verifiable factual claims with type and risk classification.",
+      "input_schema": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to decompose into claims"
+          },
+          "context": {
+            "type": "string",
+            "description": "Optional context"
+          }
+        }
+      },
+      "http": {
+        "method": "POST",
+        "url": "https://your-deployment-url.com/v1/claims/extract"
+      }
+    },
+    {
+      "name": "validate_source",
+      "description": "Check whether a URL citation is real, reachable, and actually supports a claim. Detects fabricated citations.",
+      "input_schema": {
+        "type": "object",
+        "required": ["url", "claim_text"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL to validate"
+          },
+          "claim_text": {
+            "type": "string",
+            "description": "The claim this URL is supposed to support"
+          }
+        }
+      },
+      "http": {
+        "method": "POST",
+        "url": "https://your-deployment-url.com/v1/sources/validate"
+      }
+    }
+  ],
+  "authentication": {
+    "type": "none"
+  },
+  "privacy_policy_url": "https://your-deployment-url.com/privacy",
+  "contact_email": "support@your-domain.com"
+}

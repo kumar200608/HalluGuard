@@ -1,0 +1,292 @@
+openapi: "3.1.0"
+info:
+  title: HalluGuard — Hallucination Prevention API
+  description: |
+    Verify any AI-generated answer before presenting it to users.
+    Every factual claim is checked against real evidence.
+    The pipeline: Claim Extraction → Evidence Retrieval → Entailment Checking →
+    Contradiction Detection → Temporal Validation → Calculation Validation →
+    Confidence Scoring → Final Answer Gate → Verified Response.
+  version: "1.0.0"
+  contact:
+    email: support@your-domain.com
+
+servers:
+  - url: https://your-deployment-url.com
+    description: Production
+
+paths:
+  /v1/verify:
+    post:
+      operationId: verifyAnswer
+      summary: Verify an AI-generated answer for hallucinations
+      description: |
+        Submit the user's original query and your draft answer.
+        The plugin verifies every factual claim and returns a gate decision.
+        ALWAYS use the returned 'answer' field as your final response.
+        NEVER present UNSUPPORTED claims as facts.
+        NEVER use citations not returned by this endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationRequest'
+            examples:
+              basic:
+                summary: Basic verification
+                value:
+                  query: "What is the latest version of React?"
+                  answer: "The latest version of React is 17.0.2."
+                  mode: "standard"
+      responses:
+        "200":
+          description: Verification complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        "500":
+          description: Pipeline error
+
+  /v1/claims/extract:
+    post:
+      operationId: extractClaims
+      summary: Extract atomic factual claims from text
+      description: Decompose any text into independently verifiable atomic claims with type and risk classification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                  description: The text to decompose into claims
+                context:
+                  type: string
+                  description: Optional surrounding context
+      responses:
+        "200":
+          description: Claims extracted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  claims:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Claim'
+
+  /v1/sources/validate:
+    post:
+      operationId: validateSource
+      summary: Validate whether a URL is reachable and supports a claim
+      description: Check if a citation URL exists and is accessible. Detects fabricated citations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, claim_text]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                claim_text:
+                  type: string
+      responses:
+        "200":
+          description: Source validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateSourceResponse'
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+components:
+  schemas:
+    VerificationRequest:
+      type: object
+      required: [query, answer]
+      properties:
+        query:
+          type: string
+          description: The original user question
+          example: "Who is the CEO of OpenAI?"
+        answer:
+          type: string
+          description: The draft answer to verify
+          example: "Sam Altman is the CEO of OpenAI."
+        context:
+          type: string
+          description: Optional additional context
+        mode:
+          type: string
+          enum: [fast, standard, strict, critical]
+          default: standard
+          description: |
+            fast: Only verify high-risk claims.
+            standard: Verify all externally verifiable claims.
+            strict: Verify every claim.
+            critical: Require multiple authoritative sources.
+        debug:
+          type: boolean
+          default: false
+          description: Return per-claim debug details
+
+    VerificationResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+          description: Whether the original answer passed verification unchanged
+        answer:
+          type: string
+          description: The verified (possibly repaired) answer. ALWAYS use this as your final response.
+        verification_report:
+          $ref: '#/components/schemas/VerificationReport'
+
+    VerificationReport:
+      type: object
+      properties:
+        request_id:
+          type: string
+        overall_status:
+          type: string
+          enum: [VERIFIED, PARTIALLY_VERIFIED, CONTRADICTED, UNSUPPORTED, UNVERIFIABLE, VERIFICATION_UNAVAILABLE]
+        gate_decision:
+          type: string
+          enum: [ALLOW, REWRITE, BLOCK_AND_REGENERATE, REGENERATE_WITH_CONFLICT_DISCLOSURE, RETURN_UNCERTAIN_ANSWER]
+        hallucination_risk:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        risk_score:
+          type: number
+          description: Internal risk score (0–100)
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimVerificationResult'
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceMetadata'
+          description: Only validated sources that support verified claims
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Staleness warnings, conflict notices, unverified items
+
+    Claim:
+      type: object
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        claim_type:
+          type: string
+          enum: [FACT, DATE, NUMBER, STATISTIC, PERSON, ORGANIZATION, PRODUCT, LOCATION,
+                 EVENT, TECHNICAL_SPECIFICATION, API_BEHAVIOR, LEGAL_CLAIM, MEDICAL_CLAIM,
+                 FINANCIAL_CLAIM, POLITICAL_CLAIM, CURRENT_STATUS, HISTORICAL_CLAIM,
+                 QUOTE, SOURCE_REFERENCE, CALCULATION, INFERENCE, OPINION, USER_PROVIDED, COMMON_KNOWLEDGE]
+        risk_level:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        requires_external_evidence:
+          type: boolean
+        temporal_sensitive:
+          type: boolean
+        numeric:
+          type: boolean
+
+    ClaimVerificationResult:
+      type: object
+      properties:
+        claim:
+          $ref: '#/components/schemas/Claim'
+        status:
+          type: string
+          enum: [VERIFIED, PARTIALLY_VERIFIED, CONTRADICTED, UNSUPPORTED, UNVERIFIABLE,
+                 OPINION, INFERENCE, CALCULATION, USER_PROVIDED, VERIFICATION_UNAVAILABLE]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        temporal_valid:
+          type: boolean
+          nullable: true
+        fake_citation_detected:
+          type: boolean
+        repair_instruction:
+          type: string
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceChunk'
+
+    EvidenceChunk:
+      type: object
+      properties:
+        source:
+          $ref: '#/components/schemas/SourceMetadata'
+        text:
+          type: string
+        entailment:
+          type: string
+          enum: [SUPPORTS, PARTIALLY_SUPPORTS, DOES_NOT_SUPPORT, CONTRADICTS, INSUFFICIENT_CONTEXT]
+        relevance_score:
+          type: number
+
+    SourceMetadata:
+      type: object
+      properties:
+        url:
+          type: string
+        domain:
+          type: string
+        title:
+          type: string
+        tier:
+          type: integer
+          enum: [1, 2, 3, 4]
+          description: "1=Primary (official docs/gov/academic), 2=Secondary (journalism/research), 3=Community (GitHub/SO), 4=Low confidence"
+        is_available:
+          type: boolean
+        http_status:
+          type: integer
+          nullable: true
+
+    ValidateSourceResponse:
+      type: object
+      properties:
+        source:
+          $ref: '#/components/schemas/SourceMetadata'
+        entailment:
+          type: string
+        summary:
+          type: string
